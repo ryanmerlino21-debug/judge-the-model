@@ -4,6 +4,7 @@ Run locally:  bash run_app.sh  (it runs streamlit run streamlit_app.py)
 Every number comes from m11.py applied to the files in results/; the app never retrains a model.
 """
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -36,13 +37,37 @@ def per100(v) -> str:
     return m11.fmt_num(v, 1)
 
 
-def matrix(c: dict, who: str) -> pd.DataFrame:
-    """Course layout: rows = what actually happened, columns = what the model said, positives first."""
-    return pd.DataFrame(
+def matrix(c: dict, who: str, short: bool = False):
+    """Course layout: rows = what actually happened, columns = what the model said, positives first.
+    Correct cells (TP, TN) are green and mistakes (FN, FP) are red."""
+    df = pd.DataFrame(
         [[f"TP = {c['tp']:,}", f"FN = {c['fn']:,}"], [f"FP = {c['fp']:,}", f"TN = {c['tn']:,}"]],
-        index=["Actual: positive", "Actual: negative"],
-        columns=["Predicted: positive (flagged)", "Predicted: negative (not flagged)"],
+        index=["Actual +", "Actual −"] if short else ["Actual: positive", "Actual: negative"],
+        columns=["Pred. +", "Pred. −"] if short else ["Predicted: positive (flagged)", "Predicted: negative (not flagged)"],
     )
+    good, bad = "background-color: rgba(46,160,67,0.35)", "background-color: rgba(220,53,69,0.35)"
+    return df.style.map(lambda v: good if v[:2] in ("TP", "TN") else bad)
+
+
+def how_to_read(text: str) -> None:
+    with st.expander("How to read this page", expanded=False):
+        st.markdown(text)
+
+
+def glossary() -> None:
+    with st.expander("Plain-language glossary (tap to open)"):
+        st.markdown(
+            "- **Positive class:** the outcome we are trying to find (readmitted within 30 days, or diabetes).\n"
+            "- **Probability:** the model's score for each patient, from 0 to 1.\n"
+            "- **Threshold:** the cut-off. A patient is *flagged* when their probability is at least the threshold.\n"
+            "- **TP / FN / FP / TN:** flagged and had the outcome / not flagged but had it (missed) / flagged but did not have it (false alarm) / not flagged and did not.\n"
+            "- **Sensitivity (recall):** of the patients who had the outcome, the share we flagged.\n"
+            "- **Specificity:** of the patients who did not, the share we left alone.\n"
+            "- **Precision:** of the patients we flagged, the share who had the outcome.\n"
+            "- **Accuracy:** the share of all patients the model got right. It can look high even when the model finds no one.\n"
+            "- **Prevalence:** the share of all patients who have the outcome.\n"
+            "- **AUROC:** how well a model *ranks* patients: the chance a patient with the outcome gets a higher probability than one without. 0.50 is chance, 1.00 is perfect. It is not accuracy and does not pick a threshold.\n"
+            "- **Training / Test:** training patients are the ones a model learned from; test patients are held back and never seen. Judge a model on the test patients.")
 
 
 # ---- Recommendations -----------------------------------------------------------
@@ -80,6 +105,11 @@ def beyond_accuracy(res: dict, model: str, key: str) -> None:
     maj = m11.majority_accuracy(y)
     who = GROUP[key]
 
+    how_to_read("1. Pick a **dataset** and a **model** in the sidebar.\n"
+                "2. Read the **positive class**: the outcome we are trying to find.\n"
+                "3. Compare the model's accuracy with the 'most common class for everyone' accuracy. If they are close, accuracy is not telling you the model helps.\n"
+                "4. Read the confusion matrix as four groups of patients (green = right, red = mistakes).\n"
+                "5. Scroll to the table that compares all five models at the same 0.50 threshold.")
     st.markdown(f"**Positive class:** a patient counts as positive if they were **{POSITIVE[key]}**. "
                 f"All numbers on this page are **{TEST}** results: {m['n']:,} {who} the model never saw while learning, at threshold 0.50.")
 
@@ -98,6 +128,8 @@ def beyond_accuracy(res: dict, model: str, key: str) -> None:
     st.subheader(f"{m11.MODEL_LABEL[model]}: confusion matrix at 0.50 ({TEST})")
     st.caption(f"{TEST} · rows = what actually happened, columns = what the model said. Positive means {POSITIVE[key]}.")
     st.table(matrix(c, who))
+    st.success(f"**In plain words:** of the {m['positives']:,} {who} who had the outcome, {m11.MODEL_LABEL[model]} flagged {c['tp']:,} and missed {c['fn']:,}. "
+               f"Of the {m['negatives']:,} who did not, it left {c['tn']:,} alone and flagged {c['fp']:,} by mistake ({TEST}, threshold 0.50).")
     st.markdown(
         f"- **TP (true positive):** {c['tp']:,} {who} flagged who had the outcome.\n"
         f"- **FN (false negative):** {c['fn']:,} {who} not flagged who had the outcome (missed).\n"
@@ -133,9 +165,7 @@ def beyond_accuracy(res: dict, model: str, key: str) -> None:
             st.markdown(f"**{m11.MODEL_LABEL[name]}**")
             if name in cmats:
                 st.caption(f"{TEST} · 0.50 · rows actual, columns predicted")
-                st.table(matrix(cmats[name], who).rename(
-                    columns={"Predicted: positive (flagged)": "Pred. +", "Predicted: negative (not flagged)": "Pred. −"},
-                    index={"Actual: positive": "Actual +", "Actual: negative": "Actual −"}))
+                st.table(matrix(cmats[name], who, short=True))
             else:
                 st.caption("No results yet.")
 
@@ -154,6 +184,10 @@ def threshold(res: dict, model: str, key: str) -> None:
     st.markdown(f"All numbers on this page are **{TEST}** results ({len(y):,} {who} the model never saw while learning). "
                 "The **threshold** is the probability above which we flag a patient. It is a decision made separately from the model: "
                 "moving it changes who is flagged, never the probabilities or the ranking.")
+    how_to_read("1. Choose a **dataset** and **model** in the sidebar.\n"
+                "2. Move the **threshold slider**. A lower threshold flags more patients: it finds more positives but raises false alarms.\n"
+                "3. Compare the **0.50** column with the **slider** column. Flagged per 100 shows the workload.\n"
+                "4. The line chart shows every threshold at once. The ranking (AUROC) never changes.")
     if key == "diabetes":
         st.info("**The diabetes job:** finding positives matters most. The screening team wants a sensitivity of at least 0.90.")
     else:
@@ -209,6 +243,22 @@ def threshold(res: dict, model: str, key: str) -> None:
         st.markdown(f"Sensitivity target {SENS_TARGET[key]:.2f}: {'**met**' if met else '**not met**'} at {thr:.2f} (sensitivity {pct(s)}, {TEST}).")
         st.caption("This threshold was picked by looking at these test patients, so on new patients sensitivity will usually be slightly lower (peeking).")
 
+    st.subheader(f"Every threshold at once ({TEST})")
+    st.caption(f"{TEST} · {m11.MODEL_LABEL[model]} · each line is computed at thresholds 0.01 to 0.99. Gaps in the precision line are thresholds where no one is flagged (precision undefined).")
+    curve = []
+    for t in range(1, 100):
+        mt = m11.metrics(m11.confusion(p, y, t / 100))
+        curve.append({"Threshold": t / 100,
+                      "Sensitivity (%)": None if mt["sensitivity"] is None else 100 * mt["sensitivity"],
+                      "Precision (%)": None if mt["precision"] is None else 100 * mt["precision"],
+                      "Flagged per 100": mt["flagged_per_100"]})
+    long = pd.DataFrame(curve).melt("Threshold", var_name="Measure", value_name="Value").dropna()
+    line = alt.Chart(long).mark_line().encode(x=alt.X("Threshold:Q", scale=alt.Scale(domain=[0, 1])), y=alt.Y("Value:Q", title="Percent / per 100"),
+                                              color="Measure:N", tooltip=["Threshold", "Measure", alt.Tooltip("Value:Q", format=".1f")])
+    mark = alt.Chart(pd.DataFrame({"Threshold": [thr]})).mark_rule(strokeDash=[4, 4]).encode(x="Threshold:Q")
+    st.altair_chart(line + mark, width="stretch")
+    st.caption("The dashed line is your slider's threshold.")
+
     st.subheader("What the slider does not change")
     auc = m11.auroc(p, y)
     st.markdown(f"{TEST} AUROC for {m11.MODEL_LABEL[model]}: **{m11.fmt_num(auc)}**. It is the same at every threshold. "
@@ -223,6 +273,10 @@ def train_vs_test(res: dict, model: str, key: str) -> None:
     n_tr, n_te = res["train"]["n"], res["test"]["n"]
     st.markdown("A model is judged on patients it never saw. AUROC describes **ranking**: how often a patient with the outcome gets a higher "
                 "probability than one without (0.50 is no better than chance, 1.00 is perfect). It is not accuracy.")
+    how_to_read("1. Choose a **dataset** in the sidebar.\n"
+                "2. In the table, compare each model's **Training** AUROC (patients it learned from) with its **Test** AUROC (patients it never saw).\n"
+                "3. A big **gap** means the model memorised its training patients. Trust the **Test** column.\n"
+                "4. The chart shows the same thing: a grey dot for Training, a coloured dot for Test.")
     a, b = st.columns(2)
     a.metric(f"{TRAIN} patients", f"{n_tr:,}", help=f"{res['train']['n_pos']:,} positive. Each model learned from these {who}.")
     b.metric(f"{TEST} patients", f"{n_te:,}", help=f"{res['test']['n_pos']:,} positive. Each model never saw these {who} while learning.")
@@ -237,11 +291,18 @@ def train_vs_test(res: dict, model: str, key: str) -> None:
                f"{TRAIN} AUROC flatters every model: it is measured on the patients the model learned from.")
     st.table(pd.DataFrame(rows).set_index("Model"))
 
-    st.subheader("Gap by model")
-    st.caption(f"Training minus {TEST} AUROC. A large gap means the model memorised its training patients.")
-    gaps = {m11.MODEL_LABEL[m]: s[m]["gap"] for m in order if s[m]["gap"] is not None}
-    if gaps:
-        st.bar_chart(pd.Series(gaps, name="Gap (Training − Test AUROC)"), horizontal=True)
+    st.subheader("Training vs. test, model by model")
+    st.caption(f"{TRAIN} (grey) and {TEST} (blue) AUROC for each model. The longer the line between the dots, the bigger the gap.")
+    pts = pd.DataFrame([{"Model": m11.MODEL_LABEL[m], "Partition": part, "AUROC": s[m][k], "Training": s[m]["train"], "Test": s[m]["test"]}
+                        for m in order if s[m]["gap"] is not None for part, k in ((TRAIN, "train"), (TEST, "test"))])
+    if len(pts):
+        names = [m11.MODEL_LABEL[m] for m in order]
+        base = alt.Chart(pts).encode(y=alt.Y("Model:N", sort=names, title=None))
+        rule = base.mark_rule(color="#888").encode(x=alt.X("Training:Q", scale=alt.Scale(domain=[0.4, 1.0]), title="AUROC"), x2="Test:Q")
+        dots = base.mark_circle(size=140, opacity=1).encode(
+            x="AUROC:Q", color=alt.Color("Partition:N", scale=alt.Scale(domain=[TRAIN, TEST], range=["#9a9a9a", "#1f77b4"])),
+            tooltip=["Model", "Partition", alt.Tooltip("AUROC:Q", format=".3f")])
+        st.altair_chart(rule + dots, width="stretch")
 
     if model in s and s[model]["gap"] is not None:
         v = s[model]
@@ -257,6 +318,7 @@ RENDER = dict(zip(SECTIONS, [beyond_accuracy, threshold, train_vs_test]))
 st.title("Judge the Model")
 st.caption("Which classifier would you trust for this job, at what threshold, and with what limits?")
 recommendations()
+glossary()
 section = st.sidebar.radio("Section", SECTIONS)
 key = st.sidebar.selectbox("Dataset", m11.DATASETS, format_func=m11.DATASET_LABEL.get)
 res = load(key)
