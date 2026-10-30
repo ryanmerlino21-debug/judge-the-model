@@ -8,9 +8,12 @@ The 100-dot picture scales the test counts from m11 to 100 dots (rounded).
 import math
 from urllib.parse import quote
 
+from pathlib import Path
+
 import altair as alt
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 import m11
 
@@ -288,6 +291,47 @@ def delta(new, old, as_pct: bool = True) -> str:
 
 def set_thr(skey: str, value: float) -> None:
     st.session_state[skey] = value
+    st.session_state[skey + "_n"] = st.session_state.get(skey + "_n", 0) + 1
+
+
+live_threshold = components.declare_component("live_threshold", path=str(Path(__file__).parent / "live_threshold"))
+
+
+def live_payload(G: list[dict], key: str, who: str, model: str) -> dict:
+    """Everything the live slider shows, for every threshold 0.01 to 0.99, computed here with m11.
+    The slider in the browser only looks these up, so the numbers update while you drag."""
+    ref = G[49]  # threshold 0.50
+    c0, m0 = ref["c"], ref["m"]
+    rows = {}
+    for g in G:
+        c1, m1 = g["c"], g["m"]
+
+        def r(name, k, as_pct=True):
+            f = pct if as_pct else (lambda v: m11.fmt_num(v, 1))
+            return [name, f(m0[k]), f(m1[k]), delta(m1[k], m0[k], as_pct)]
+
+        cmp = [r("Flagged per 100", "flagged_per_100", False), r("Sensitivity (recall, TPR)", "sensitivity"), r("Specificity", "specificity"),
+               r("Precision", "precision"), r("Accuracy", "accuracy"), r("F1", "f1")]
+        n0, n1 = m0["flagged_per_100"], m1["flagged_per_100"]
+        summary = ""
+        if m0["n"] and n0 is not None and n1 is not None:
+            summary = (f"Per 100 {who} screened, compared with 0.50: <b>{n1 - n0:+.1f} flagged</b>, "
+                       f"<b>{100 * (c1['tp'] - c0['tp']) / m1['n']:+.1f} more positives found</b>, "
+                       f"<b>{100 * (c1['fp'] - c0['fp']) / m1['n']:+.1f} more false alarms</b> ({TEST}).")
+        target = ""
+        if key in SENS_TARGET:
+            sv = m1["sensitivity"]
+            met = sv is not None and sv >= SENS_TARGET[key]
+            target = (f"Sensitivity target {SENS_TARGET[key]:.2f}: {'met' if met else 'not met'} at {g['t']:.2f} (sensitivity {pct(sv)}, {TEST}). "
+                      "The threshold was chosen on these test patients, so expect slightly lower on new ones.")
+        rows[str(round(g["t"] * 100))] = {"t": f"{g['t']:.2f}", "tv": g["t"], "c": c1, "cmp": cmp, "summary": summary, "target": target}
+    return {"rows": rows, "ref": c0, "labels": {
+        "slider": "Threshold: flag a patient when their probability is at least this",
+        "capRef": f"{TEST} · {m11.MODEL_LABEL[model]} · threshold 0.50",
+        "capNew": f"{TEST} · {m11.MODEL_LABEL[model]} · threshold {{t}} (slider)",
+        "capTable": f"{TEST} · Flagged per 100 = of every 100 {who}, how many the model flags",
+        "row1": "Actual: positive", "row2": "Actual: negative",
+        "col1": "Predicted: positive (flagged)", "col2": "Predicted: negative (not flagged)"}}
 
 
 def strip(p, y, label: str, color: str, thr: float):
@@ -312,6 +356,7 @@ def threshold(res: dict, model: str, key: str) -> None:
 
     skey = f"thr_{key}_{model}"
     st.session_state.setdefault(skey, 0.50)
+    st.session_state.setdefault(skey + "_n", 0)
     b1, b2, b3, _ = st.columns([1, 1, 1.4, 0.6])
     b1.button("Reset to 0.50", on_click=set_thr, args=(skey, 0.50), key=f"b1_{key}_{model}")
     f1s = [(g["m"]["f1"], g["t"]) for g in G if g["m"]["f1"] is not None]
@@ -323,40 +368,15 @@ def threshold(res: dict, model: str, key: str) -> None:
             b3.button(f"Reach {SENS_TARGET[key]:.2f} sensitivity ({max(ok):.2f})", on_click=set_thr, args=(skey, max(ok)), key=f"b3_{key}_{model}")
         else:
             st.caption(f"No threshold from 0.01 to 0.99 reaches a sensitivity of {SENS_TARGET[key]:.2f} for this model.")
-    thr = st.slider("Threshold: flag a patient when their probability is at least this", 0.01, 0.99, step=0.01, key=skey)
 
-    c0, c1 = m11.confusion(p, y, 0.5), m11.confusion(p, y, thr)
-    m0, m1 = m11.metrics(c0), m11.metrics(c1)
-
-    st.markdown(f"### 0.50 vs. {thr:.2f} ({TEST})")
-    l, r = st.columns(2)
-    for col, c, label in ((l, c0, "0.50"), (r, c1, f"{thr:.2f} (slider)")):
-        with col:
-            st.caption(f"{TEST} · {m11.MODEL_LABEL[model]} · threshold {label}")
-            st.table(matrix(c))
-
-    REF, NEW = "Threshold 0.50", f"Threshold {thr:.2f} (slider)"
-
-    def row(name, k, as_pct=True):
-        f = pct if as_pct else (lambda v: m11.fmt_num(v, 1))
-        return {"Metric": name, REF: f(m0[k]), NEW: f(m1[k]), "Change": delta(m1[k], m0[k], as_pct)}
-
-    cmp = [row("Flagged per 100", "flagged_per_100", False), row("Sensitivity (recall, TPR)", "sensitivity"), row("Specificity", "specificity"),
-           row("Precision", "precision"), row("Accuracy", "accuracy"), row("F1", "f1")]
-    st.caption(f"{TEST} · Flagged per 100 = of every 100 {who}, how many the model flags")
-    st.table(pd.DataFrame(cmp).set_index("Metric"))
-
-    nflag0, nflag1 = m0["flagged_per_100"], m1["flagged_per_100"]
-    if m0["n"] and nflag0 is not None and nflag1 is not None:
-        extra_fp = 100 * (c1["fp"] - c0["fp"]) / m1["n"]
-        extra_tp = 100 * (c1["tp"] - c0["tp"]) / m1["n"]
-        st.success(f"Per 100 {who} screened, compared with 0.50: **{nflag1 - nflag0:+.1f} flagged**, "
-                   f"**{extra_tp:+.1f} more positives found**, **{extra_fp:+.1f} more false alarms** ({TEST}).")
-    if key in SENS_TARGET:
-        s = m1["sensitivity"]
-        met = s is not None and s >= SENS_TARGET[key]
-        st.caption(f"Sensitivity target {SENS_TARGET[key]:.2f}: {'met' if met else 'not met'} at {thr:.2f} (sensitivity {pct(s)}, {TEST}). "
-                   "The threshold was chosen on these test patients, so expect slightly lower on new ones.")
+    st.markdown(f"### 0.50 vs. your threshold ({TEST})")
+    nonce = st.session_state[skey + "_n"]
+    val = live_threshold(**live_payload(G, key, who, model), initial=st.session_state[skey], nonce=nonce,
+                         key=f"live_{key}_{model}", default={"thr": st.session_state[skey], "nonce": nonce})
+    if val and val.get("nonce") == nonce:
+        st.session_state[skey] = val["thr"]
+    thr = st.session_state[skey]
+    st.caption("The numbers above move as you drag. The charts below update when you let go.")
 
     rc = m11.roc(p, y)
     st.markdown(f"### See it ({TEST})")
@@ -379,6 +399,7 @@ def threshold(res: dict, model: str, key: str) -> None:
     with tab3:
         st.caption(f"{TEST} · each point is one threshold; the orange dot is your slider; the dashed diagonal is a coin flip.")
         roc_df = pd.DataFrame(list(zip(rc["fpr"], rc["tpr"])), columns=["False positive rate", "Sensitivity"])
+        m1 = G[round(thr * 100) - 1]["m"]
         here = pd.DataFrame({"False positive rate": [m1["fpr"]], "Sensitivity": [m1["sensitivity"]]}).dropna()
         base = alt.Chart(roc_df).mark_line(color=TEAL, strokeWidth=2.5).encode(
             x=alt.X("False positive rate:Q", scale=alt.Scale(domain=[0, 1])), y=alt.Y("Sensitivity:Q", scale=alt.Scale(domain=[0, 1])))
