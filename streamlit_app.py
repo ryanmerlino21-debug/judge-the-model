@@ -36,17 +36,6 @@ st.set_page_config(page_title="Judge the Model", page_icon="◖", layout="wide",
 
 
 # ---- look and feel ------------------------------------------------------------------
-def blob_uri(fill: str, lobes: int, amp: float) -> str:
-    """A scalloped blob as a CSS data-URI background (pure decoration)."""
-    pts = []
-    for i in range(240):
-        a = 2 * math.pi * i / 240
-        r = 43 + amp * abs(math.sin(lobes * a / 2))
-        pts.append(f"{50 + r * math.cos(a):.2f},{50 + r * math.sin(a):.2f}")
-    svg = f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='{' '.join(pts)}' fill='{fill}'/></svg>"
-    return f'url("data:image/svg+xml,{quote(svg)}")'
-
-
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap');
@@ -59,7 +48,7 @@ h1, h2, h3, .serif { font-family: 'Instrument Serif', 'Times New Roman', serif !
 h2 { font-size: 2.3rem !important; line-height: 1.1; margin-top: 0.8rem; }
 h3 { font-size: 1.6rem !important; line-height: 1.15; margin-top: 1.8rem; }
 
-.hero { position: relative; overflow: hidden; background: #EDE8DF; border: 1px solid rgba(17,17,17,0.15); border-radius: 20px; padding: 1.4rem 2rem; margin-bottom: 1rem; }
+.hero { position: relative; overflow: hidden; background: #EDE8DF; border: 1px solid rgba(17,17,17,0.15); border-radius: 20px; padding: 1.4rem 2rem 2.8rem; margin-bottom: 1rem; }
 .hero-blob { position: absolute; right: 2rem; top: 50%; width: 110px; height: 110px; transform: translateY(-50%); background-repeat: no-repeat; background-size: contain; }
 .hero p.hero-title { font-family: 'Instrument Serif', serif !important; font-size: 3rem !important; line-height: 1; margin: 0; position: relative; }
 .hero p.hero-title em { color: #1F7A8C; }
@@ -90,7 +79,50 @@ h3 { font-size: 1.6rem !important; line-height: 1.15; margin-top: 1.8rem; }
 .legend .tp i { background: #1F7A8C; } .legend .tn i { background: #D9E6E8; } .legend .fn i { background: #E8683A; } .legend .fp i { background: #F6C9B8; }
 </style>
 """
-CSS += "<style>.hero-blob { background-image: %s; }</style>" % blob_uri(TEAL, 9, 6.5)
+
+
+def svg_uri(svg: str) -> str:
+    return 'url("data:image/svg+xml,%s")' % quote(svg)
+
+
+def hero_art() -> str:
+    """Teal scalloped medallion with a white heartbeat line and a medical cross (decoration only)."""
+    pts = " ".join(f"{50 + (43 + 6.5 * abs(math.sin(9 * a / 2))) * math.cos(a):.2f},{50 + (43 + 6.5 * abs(math.sin(9 * a / 2))) * math.sin(a):.2f}"
+                   for a in (2 * math.pi * i / 240 for i in range(240)))
+    return svg_uri(
+        f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='{pts}' fill='{TEAL}'/>"
+        "<rect x='45' y='20' width='10' height='22' rx='2.5' fill='white'/><rect x='39' y='26' width='22' height='10' rx='2.5' fill='white'/>"
+        "<polyline points='16,62 34,62 41,62 46,48 53,78 59,56 64,62 84,62' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+
+
+def icon_art(n: int) -> str:
+    """Small section icons: 1 confusion-matrix tiles, 2 threshold slider, 3 training vs. test bars."""
+    if n == 0:
+        body = (f"<rect x='8' y='8' width='23' height='23' rx='6' fill='{TEAL}'/><rect x='33' y='8' width='23' height='23' rx='6' fill='{ORANGE}'/>"
+                f"<rect x='8' y='33' width='23' height='23' rx='6' fill='#F6C9B8'/><rect x='33' y='33' width='23' height='23' rx='6' fill='#BFD9DE'/>")
+    elif n == 1:
+        body = (f"<rect x='6' y='29' width='52' height='7' rx='3.5' fill='#D9D3C7'/><rect x='6' y='29' width='30' height='7' rx='3.5' fill='{TEAL}'/>"
+                f"<circle cx='36' cy='32.5' r='9' fill='white' stroke='{INK}' stroke-width='2.5'/><circle cx='14' cy='14' r='4' fill='{ORANGE}'/>"
+                f"<circle cx='24' cy='12' r='4' fill='{ORANGE}'/><circle cx='46' cy='50' r='4' fill='{BLUE}'/><circle cx='54' cy='47' r='4' fill='{BLUE}'/>")
+    else:
+        body = (f"<rect x='10' y='10' width='18' height='46' rx='5' fill='{GREY}'/><rect x='36' y='24' width='18' height='32' rx='5' fill='{TEAL}'/>"
+                f"<line x1='6' y1='10' x2='58' y2='10' stroke='{INK}' stroke-width='2' stroke-dasharray='3 3'/>"
+                f"<line x1='32' y1='10' x2='32' y2='24' stroke='{ORANGE}' stroke-width='3' stroke-linecap='round'/>")
+    return svg_uri(f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'>{body}</svg>")
+
+
+ECG_TILE = svg_uri("<svg xmlns='http://www.w3.org/2000/svg' width='140' height='40' viewBox='0 0 140 40'>"
+                   f"<polyline points='0,22 46,22 52,8 60,34 66,16 72,22 140,22' fill='none' stroke='{TEAL}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>")
+
+CSS += ("<style>.hero-blob { background-image: %s; }"
+        ".hero::after { content: ''; position: absolute; left: 0; right: 0; bottom: 6px; height: 36px; background-image: %s; background-repeat: repeat-x; opacity: .35; }"
+        ".sec { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }"
+        ".sec-icon { flex: none; width: 64px; height: 64px; border-radius: 18px; background-color: #EDE8DF; border: 1px solid rgba(17,17,17,0.15); background-size: 44px; background-repeat: no-repeat; background-position: center; }"
+        ".sec-icon.i0 { background-image: %s; } .sec-icon.i1 { background-image: %s; } .sec-icon.i2 { background-image: %s; }"
+        ".side-logo { display: flex; align-items: center; gap: .7rem; padding: .2rem 0 1rem; }"
+        ".side-logo .art { width: 46px; height: 46px; background-image: %s; background-size: contain; background-repeat: no-repeat; }"
+        ".side-logo b { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 1.5rem; line-height: 1; }"
+        "</style>") % (hero_art(), ECG_TILE, icon_art(0), icon_art(1), icon_art(2), hero_art())
 st.markdown(CSS, unsafe_allow_html=True)
 
 
@@ -468,6 +500,7 @@ RENDER = dict(zip(SECTIONS, [beyond_accuracy, threshold, train_vs_test]))
 
 # ---- page ----------------------------------------------------------------------------------
 header()
+st.sidebar.markdown('<div class="side-logo"><div class="art"></div><b>Judge the<br>model</b></div>', unsafe_allow_html=True)
 section = st.sidebar.radio("Section", SECTIONS, key="nav")
 key = st.sidebar.selectbox("Dataset", m11.DATASETS, format_func=m11.DATASET_LABEL.get, key="dataset")
 res = load(key)
@@ -475,7 +508,7 @@ model = st.sidebar.selectbox("Model", m11.MODELS, key="model",
                              format_func=lambda m: m11.MODEL_LABEL[m] + ("" if m in res["models"] else " (not trained yet)"))
 sidebar_help()
 recommendations(key)
-st.header(section)
+st.markdown(f'<div class="sec"><h2>{section}</h2><div class="sec-icon i{SECTIONS.index(section)}"></div></div>', unsafe_allow_html=True)
 st.caption(f"{m11.DATASET_LABEL[key]} · {res['train']['n']:,} training and {res['test']['n']:,} test patients")
 if model in res["models"] or section == SECTIONS[2]:
     RENDER[section](res, model, key)
