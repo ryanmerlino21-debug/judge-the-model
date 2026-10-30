@@ -29,7 +29,7 @@ SENS_TARGET = {"diabetes": 0.90}  # the screening team's target; readmission has
 
 INK, CREAM, SAND, TEAL, BLUE, ORANGE, GREY = "#111111", "#F6F3EE", "#EDE8DF", "#1F7A8C", "#2E4A9E", "#E8683A", "#9A948A"
 
-st.set_page_config(page_title="Judge the Model", page_icon="◖", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Judge the Model", page_icon="◖", layout="wide", initial_sidebar_state="expanded")
 
 
 # ---- look and feel ------------------------------------------------------------------
@@ -47,88 +47,51 @@ def blob_uri(fill: str, lobes: int, amp: float, rot: float = 0.0) -> str:
 CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600&display=swap');
-html, body, [class*="css"], .stMarkdown, p, li, label, td, th { font-family: 'Inter', sans-serif; color: #111; }
-h1, h2, h3, .serif { font-family: 'Instrument Serif', 'Times New Roman', serif !important; font-weight: 400 !important; color: #111; }
+html, body, [class*="css"], .stMarkdown, p, li, label, td, th { font-family: 'Inter', sans-serif; }
+h1, h2, h3, .serif { font-family: 'Instrument Serif', 'Times New Roman', serif !important; font-weight: 400 !important; letter-spacing: -0.005em; }
 .stApp { background: #F6F3EE; }
-[data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"], [data-testid="stToolbar"], header { display: none !important; }
-.block-container { padding: 1.2rem 2rem 4rem; max-width: 1280px; }
-h2 { font-size: 2.6rem !important; line-height: 1.05; text-transform: uppercase; letter-spacing: 0.01em; margin-top: 1.6rem; }
-h3 { font-size: 1.9rem !important; line-height: 1.1; margin-top: 1.4rem; }
-a { color: #1F7A8C; }
+[data-testid="stToolbar"], header { display: none !important; }
+[data-testid="stSidebar"] { background: #EDE8DF; border-right: 1px solid rgba(17,17,17,0.12); }
+.block-container { padding: 2rem 2.2rem 4rem; max-width: 1100px; }
+h2 { font-size: 2.5rem !important; line-height: 1.1; margin-top: 1.4rem; }
+h3 { font-size: 1.8rem !important; line-height: 1.15; margin-top: 1.6rem; }
 
-/* top bar + hero */
-.topbar { display: flex; justify-content: space-between; align-items: center; border: 1px solid #111; background: #F6F3EE; padding: 0.7rem 1.1rem; }
-.brand { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 1.15rem; letter-spacing: -0.01em; }
-.brand b { display: inline-block; width: 1.05rem; height: 1.05rem; border-radius: 50% 0 0 50%; background: #111; margin-right: 0.5rem; vertical-align: -2px; }
-.topmeta { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; }
-.hero { display: grid; grid-template-columns: 1fr 1.25fr 1fr; border: 1px solid #111; border-top: none; margin-bottom: 1.1rem; }
-.hcell { position: relative; min-height: 340px; border-right: 1px solid #111; padding: 1.6rem; display: flex; flex-direction: column; justify-content: center; }
-.hcell:last-child { border-right: none; }
-.hero p.hx { font-family: 'Instrument Serif', serif !important; font-size: 4.6rem !important; line-height: 0.95; text-transform: uppercase; text-align: center; margin: 0; }
-.hero p.hx em { text-transform: none; font-size: 4.2rem !important; }
-.blob { background-repeat: no-repeat; background-position: center; background-size: contain; color: #fff; text-align: center; align-items: center; }
-.hero .blob p { color: #fff !important; font-family: 'Instrument Serif', serif !important; font-size: 2rem !important; line-height: 1.12; margin: 0 auto; max-width: 17rem; }
-.blob small { color: #fff; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.8rem; }
-.toc a { display: block; text-decoration: none; color: #111; border-bottom: 1px solid #111; padding: 0.8rem 0; font-family: 'Instrument Serif', serif; font-size: 1.5rem; }
-.toc a span { font-family: 'Inter', sans-serif; font-size: 0.75rem; margin-right: 0.7rem; }
-.toc a:last-child { border-bottom: none; }
-@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .hcell { border-right: none; border-bottom: 1px solid #111; } .hx { font-size: 3.4rem; } }
-
-/* nav + controls (radios styled as hairline cells) */
-.st-key-nav [role="radiogroup"], .st-key-dataset [role="radiogroup"], .st-key-model [role="radiogroup"],
-.st-key-sortby [role="radiogroup"], .st-key-question [role="radiogroup"] { gap: 0; flex-wrap: wrap; border: 1px solid #111; background: #F6F3EE; width: 100%; }
-.st-key-nav label, .st-key-dataset label, .st-key-model label, .st-key-sortby label, .st-key-question label
-  { margin: 0 !important; padding: 0.55rem 1rem; border-right: 1px solid #111; flex: 1 1 auto; justify-content: center; cursor: pointer; transition: background .15s ease; }
-.st-key-nav label { padding: 0.9rem 1rem; }
-.st-key-nav label:last-child, .st-key-dataset label:last-child, .st-key-model label:last-child, .st-key-sortby label:last-child, .st-key-question label:last-child { border-right: none; }
-[data-testid="stRadioOption"] > div > div:first-child { display: none !important; }
-[data-testid="stRadioOption"] > div { justify-content: center; }
-.st-key-nav label:hover, .st-key-dataset label:hover, .st-key-model label:hover, .st-key-sortby label:hover, .st-key-question label:hover { background: #EDE8DF; }
-.st-key-nav label:has(input:checked), .st-key-dataset label:has(input:checked), .st-key-model label:has(input:checked),
-.st-key-sortby label:has(input:checked), .st-key-question label:has(input:checked) { background: #111; }
-.st-key-nav label:has(input:checked) p, .st-key-dataset label:has(input:checked) p, .st-key-model label:has(input:checked) p,
-.st-key-sortby label:has(input:checked) p, .st-key-question label:has(input:checked) p { color: #F6F3EE !important; }
-.st-key-nav label p { font-family: 'Instrument Serif', serif; font-size: 1.35rem; text-transform: uppercase; }
-.ctl-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; margin: 0.9rem 0 0.25rem; }
+/* hero banner */
+.hero { position: relative; overflow: hidden; background: #EDE8DF; border: 1px solid rgba(17,17,17,0.15); border-radius: 20px; padding: 2rem 2.4rem; margin-bottom: 1.2rem; }
+.hero-blob { position: absolute; right: 2.2rem; top: 50%; width: 170px; height: 170px; transform: translateY(-50%); background-repeat: no-repeat; background-size: contain; opacity: 0.95; }
+.hero p.hero-title { font-family: 'Instrument Serif', serif !important; font-size: 3.6rem !important; line-height: 1; margin: 0; position: relative; }
+.hero p.hero-title em { color: #1F7A8C; }
+.hero p.hero-sub { position: relative; max-width: 34rem; font-size: 1.05rem !important; margin: 0.7rem 0 1rem; color: #3b3b3b; }
+.chip { position: relative; display: inline-block; padding: 0.2rem 0.8rem; margin: 0 0.4rem 0.3rem 0; border-radius: 999px; font-size: 0.8rem; background: #F6F3EE; border: 1px solid rgba(17,17,17,0.2); }
 
 /* cards, metrics, tables */
-[data-testid="stVerticalBlockBorderWrapper"] { border-radius: 0; border: 1px solid #111 !important; background: #F6F3EE; }
-[data-testid="stMetric"] { background: #F6F3EE; border: 1px solid #111; padding: 1rem 1.2rem; transition: background .15s ease, transform .15s ease; }
-[data-testid="stMetric"]:hover { background: #EDE8DF; transform: translateY(-2px); }
-[data-testid="stMetricValue"] { font-family: 'Instrument Serif', serif; font-size: 3rem; color: #1F7A8C; }
-[data-testid="stMetricLabel"] p { text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.75rem; }
-[data-testid="stExpander"] { border: 1px solid #111; border-radius: 0; background: #F6F3EE; }
-[data-testid="stExpander"] summary:hover { background: #EDE8DF; }
-[data-testid="stTable"] table { border-collapse: collapse; width: 100%; border: 1px solid #111; }
-[data-testid="stTable"] th { background: #EDE8DF; font-family: 'Instrument Serif', serif; font-size: 1.05rem; font-weight: 400; text-transform: uppercase; letter-spacing: 0.04em; }
-[data-testid="stTable"] td, [data-testid="stTable"] th { border: 1px solid #111 !important; padding: 0.55rem 0.8rem; }
-[data-testid="stTable"] tr:hover td { filter: brightness(0.97); }
-[data-testid="stAlert"] { border-radius: 0; border: 1px solid #111; background: #EDE8DF; }
-[data-testid="stAlert"] p { color: #111; }
-.stButton > button { border-radius: 0; background: #111; color: #F6F3EE; border: 1px solid #111; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.78rem; padding: 0.55rem 1rem; transition: transform .15s ease, background .15s ease; }
-.stButton > button:hover { background: #1F7A8C; border-color: #1F7A8C; color: #fff; transform: translateY(-2px); }
+[data-testid="stVerticalBlockBorderWrapper"] { border-radius: 16px; border: 1px solid rgba(17,17,17,0.15) !important; background: #FBF9F5; }
+[data-testid="stMetric"] { background: #FBF9F5; border: 1px solid rgba(17,17,17,0.15); border-radius: 16px; padding: 1rem 1.2rem; transition: transform .15s ease, border-color .15s ease; }
+[data-testid="stMetric"]:hover { transform: translateY(-2px); border-color: #1F7A8C; }
+[data-testid="stMetricValue"] { font-family: 'Instrument Serif', serif; font-size: 2.8rem; color: #1F7A8C; }
+[data-testid="stExpander"] { border: 1px solid rgba(17,17,17,0.15); border-radius: 14px; background: #FBF9F5; }
+[data-testid="stTable"] table { border-collapse: separate; border-spacing: 0; width: 100%; border: 1px solid rgba(17,17,17,0.2); border-radius: 12px; overflow: hidden; }
+[data-testid="stTable"] th { background: #EDE8DF; font-weight: 600; font-size: 0.85rem; }
+[data-testid="stTable"] td, [data-testid="stTable"] th { border-color: rgba(17,17,17,0.1) !important; padding: 0.55rem 0.8rem; }
+[data-testid="stAlert"] { border-radius: 14px; }
+.stButton > button { border-radius: 999px; background: #111; color: #F6F3EE; border: none; font-weight: 500; padding: 0.45rem 1.1rem; transition: transform .15s ease, background .15s ease; }
+.stButton > button:hover { background: #1F7A8C; color: #fff; transform: translateY(-1px); }
 .stButton > button p { color: inherit !important; }
-[data-testid="stSlider"] [role="slider"] { background: #1F7A8C; }
-
-/* recommendation cards */
-.rec { border: 1px solid #111; padding: 1.2rem 1.4rem; height: 100%; background: #F6F3EE; }
-.rec.on { background: #EDE8DF; box-shadow: 6px 6px 0 #1F7A8C; }
-.rec h4 { font-family: 'Instrument Serif', serif; font-weight: 400; font-size: 1.7rem; margin: 0 0 0.5rem; text-transform: uppercase; }
-.rec p { font-size: 0.95rem; line-height: 1.55; margin: 0; }
+.stTabs [data-baseweb="tab"] { font-weight: 500; }
+.stTabs [aria-selected="true"] { color: #1F7A8C; }
 
 /* 100-patient dot grid */
-.waffle { display: grid; grid-template-columns: repeat(10, 1.7rem); gap: 0.35rem; margin: 0.4rem 0 0.6rem; }
-.dot { width: 1.7rem; height: 1.7rem; border-radius: 50%; border: 1px solid #111; transition: transform .15s ease, opacity .2s ease; }
-.dot:hover { transform: scale(1.25); }
+.waffle { display: grid; grid-template-columns: repeat(10, 1.6rem); gap: 0.3rem; margin: 0.4rem 0 0.6rem; }
+.dot { width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 1px solid rgba(17,17,17,0.45); transition: transform .15s ease, opacity .2s ease; }
+.dot:hover { transform: scale(1.2); }
 .dot.tp { background: #1F7A8C; } .dot.tn { background: #D9E6E8; } .dot.fn { background: #E8683A; } .dot.fp { background: #F6C9B8; }
 .dot.dim { opacity: 0.14; }
-.legend span { display: inline-block; margin-right: 1.1rem; font-size: 0.82rem; }
-.legend i { display: inline-block; width: 0.8rem; height: 0.8rem; border-radius: 50%; border: 1px solid #111; margin-right: 0.35rem; vertical-align: -1px; }
+.legend span { display: inline-block; margin-right: 1rem; font-size: 0.8rem; }
+.legend i { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 50%; border: 1px solid rgba(17,17,17,0.45); margin-right: 0.3rem; vertical-align: -1px; }
 .legend .tp i { background: #1F7A8C; } .legend .tn i { background: #D9E6E8; } .legend .fn i { background: #E8683A; } .legend .fp i { background: #F6C9B8; }
 </style>
 """
-CSS += ("<style>.blob-teal { background-image: %s; } .blob-blue { background-image: %s; }</style>"
-        % (blob_uri(TEAL, 9, 6.5), blob_uri(BLUE, 7, 6.5, 0.4)))
+CSS += "<style>.hero-blob { background-image: %s; }</style>" % blob_uri(TEAL, 9, 6.5)
 st.markdown(CSS, unsafe_allow_html=True)
 
 
@@ -228,27 +191,23 @@ def grid(key: str, model: str) -> list[dict]:
 # ---- header, recommendations, controls --------------------------------------------------
 def header() -> None:
     st.markdown(
-        f"""<div class="topbar"><span class="brand"><b></b>Judge the Model</span>
-        <span class="topmeta">{len(m11.DATASETS)} clinical jobs · {len(m11.MODELS)} models incl. a baseline · every table labelled Training or Test</span></div>
-        <div class="hero">
-          <div class="hcell"><p class="hx">Judge<br><em>the</em><br>Model</p></div>
-          <div class="hcell blob blob-teal"><p>Which classifier would you trust for this job, at what threshold, and with what limits?</p></div>
-          <div class="hcell"><div class="toc"><a><span>01</span>Beyond accuracy</a><a><span>02</span>A threshold for the job</a><a><span>03</span>Training vs. test</a></div></div>
-        </div>""", unsafe_allow_html=True)
+        f"""<div class="hero"><div class="hero-blob"></div>
+        <p class="hero-title">Judge the <em>model</em></p>
+        <p class="hero-sub">Which classifier would you trust for this job, at what threshold, and with what limits?</p>
+        <span class="chip">{len(m11.DATASETS)} clinical jobs</span><span class="chip">{len(m11.MODELS)} models incl. a baseline</span>
+        <span class="chip">Every table labelled Training or Test</span></div>""", unsafe_allow_html=True)
 
 
 def recommendations(active: str) -> None:
     d = load("decisions")
     recs = (d or {}).get("recommendations", {})
-    st.markdown("### Recommendations")
-    if not any(recs.values()):
-        st.caption("No recommendations yet: fill in `Recommendations` in DECISIONS.md, run `python -m analysis`, then commit and push.")
-        return
-    cols = st.columns(len(m11.DATASETS))
-    for col, k in zip(cols, m11.DATASETS):
-        with col:
-            st.markdown(f'<div class="rec{" on" if k == active else ""}"><h4>{m11.DATASET_LABEL[k]}</h4>'
-                        f'<p>{recs.get(k) or "<i>not written yet</i>"}</p></div>', unsafe_allow_html=True)
+    with st.container(border=True):
+        st.subheader("Recommendations")
+        if not any(recs.values()):
+            st.caption("No recommendations yet: fill in `Recommendations` in DECISIONS.md, run `python -m analysis`, then commit and push.")
+            return
+        for k in m11.DATASETS:
+            st.markdown(f"**{m11.DATASET_LABEL[k]}:** {recs.get(k) or '_not written yet_'}")
 
 
 # ---- 1. Beyond Accuracy ----------------------------------------------------------------
@@ -280,7 +239,7 @@ def beyond_accuracy(res: dict, model: str, key: str) -> None:
     maj = m11.majority_accuracy(y)
     who = GROUP[key]
 
-    how_to_read("1. Pick a **dataset** and a **model** at the top.\n"
+    how_to_read("1. Pick a **dataset** and a **model** in the sidebar.\n"
                 "2. Read the **positive class**: the outcome we are trying to find.\n"
                 "3. Compare the model's accuracy with the 'most common class for everyone' accuracy. If they are close, accuracy is not telling you the model helps.\n"
                 "4. Read the confusion matrix as four groups of patients, then tap a question under it to light up the dots that answer it.\n"
@@ -330,8 +289,7 @@ def beyond_accuracy(res: dict, model: str, key: str) -> None:
 
     st.markdown(f"### All five models at 0.50 ({TEST})")
     st.caption(f"{TEST} · same {m['n']:,} {who} for every model. Undefined means a 0 ÷ 0 (for example, precision when no one is flagged).")
-    control_label("Sort the table by")
-    sort = st.radio("Sort", ["Model order", "Accuracy", "Sensitivity", "Specificity", "Precision", "F1"], key="sortby", label_visibility="collapsed")
+    sort = st.radio("Sort the table by", ["Model order", "Accuracy", "Sensitivity", "Specificity", "Precision", "F1"], key="sortby", horizontal=True)
     entries = {}
     for name in m11.MODELS:
         if name in res["models"]:
@@ -388,7 +346,7 @@ def threshold(res: dict, model: str, key: str) -> None:
     st.markdown(f"All numbers on this page are **{TEST}** results ({len(y):,} {who} the model never saw while learning). "
                 "The **threshold** is the probability above which we flag a patient. It is a decision made separately from the model: "
                 "moving it changes who is flagged, never the probabilities or the ranking.")
-    how_to_read("1. Choose a **dataset** and **model** at the top.\n"
+    how_to_read("1. Choose a **dataset** and **model** in the sidebar.\n"
                 "2. Move the **threshold slider**, or tap a shortcut. A lower threshold flags more patients: it finds more positives but raises false alarms.\n"
                 "3. Watch the **dots**: patients to the right of the black line are flagged.\n"
                 "4. Compare the **0.50** column with the **slider** column. Flagged per 100 shows the workload.\n"
@@ -400,7 +358,7 @@ def threshold(res: dict, model: str, key: str) -> None:
 
     skey = f"thr_{key}_{model}"
     st.session_state.setdefault(skey, 0.50)
-    control_label("Shortcuts")
+    st.markdown("**Shortcuts**")
     b1, b2, b3, _ = st.columns([1, 1, 1, 1])
     b1.button("Reset to 0.50", on_click=set_thr, args=(skey, 0.50), key=f"b1_{key}_{model}")
     f1s = [(g["m"]["f1"], g["t"]) for g in G if g["m"]["f1"] is not None]
@@ -416,10 +374,6 @@ def threshold(res: dict, model: str, key: str) -> None:
 
     c0, c1 = m11.confusion(p, y, 0.5), m11.confusion(p, y, thr)
     m0, m1 = m11.metrics(c0), m11.metrics(c1)
-
-    st.markdown(f"### Where the patients fall ({TEST})")
-    st.caption(f"{TEST} · {m11.MODEL_LABEL[model]} · each dot is one patient. The black line is the threshold {thr:.2f}: dots on or to its right are flagged.")
-    st.altair_chart(style_chart(alt.vconcat(strip(p, y, "Had the outcome", ORANGE, thr), strip(p, y, "Did not have the outcome", BLUE, thr))), width="stretch")
 
     st.markdown(f"### Side by side ({TEST}): 0.50 vs. {thr:.2f}")
     l, r = st.columns(2)
@@ -455,31 +409,36 @@ def threshold(res: dict, model: str, key: str) -> None:
         st.markdown(f"Sensitivity target {SENS_TARGET[key]:.2f}: {'**met**' if met else '**not met**'} at {thr:.2f} (sensitivity {pct(s)}, {TEST}).")
         st.caption("This threshold was picked by looking at these test patients, so on new patients sensitivity will usually be slightly lower (peeking).")
 
-    st.markdown(f"### Every threshold at once ({TEST})")
-    st.caption(f"{TEST} · {m11.MODEL_LABEL[model]} · thresholds 0.01 to 0.99. Gaps in the precision line are thresholds where no one is flagged (precision undefined).")
-    curve = pd.DataFrame([{"Threshold": g["t"], "Sensitivity (%)": None if g["m"]["sensitivity"] is None else 100 * g["m"]["sensitivity"],
-                           "Precision (%)": None if g["m"]["precision"] is None else 100 * g["m"]["precision"],
-                           "Flagged per 100": g["m"]["flagged_per_100"]} for g in G])
-    long = curve.melt("Threshold", var_name="Measure", value_name="Value").dropna()
-    line = alt.Chart(long).mark_line(strokeWidth=2.5).encode(
-        x=alt.X("Threshold:Q", scale=alt.Scale(domain=[0, 1])), y=alt.Y("Value:Q", title="Percent / per 100"),
-        color=alt.Color("Measure:N", scale=alt.Scale(domain=["Sensitivity (%)", "Precision (%)", "Flagged per 100"], range=[TEAL, BLUE, ORANGE])),
-        tooltip=["Threshold", "Measure", alt.Tooltip("Value:Q", format=".1f")])
-    mark = alt.Chart(pd.DataFrame({"Threshold": [thr]})).mark_rule(strokeDash=[4, 4], color=INK).encode(x="Threshold:Q")
-    st.altair_chart(style_chart(line + mark), width="stretch")
-    st.caption("The dashed line is your slider's threshold.")
-
-    st.markdown(f"### ROC curve ({TEST})")
     rc = m11.roc(p, y)
-    roc_df = pd.DataFrame(list(zip(rc["fpr"], rc["tpr"])), columns=["False positive rate", "Sensitivity"])
-    here = pd.DataFrame({"False positive rate": [m1["fpr"]], "Sensitivity": [m1["sensitivity"]]}).dropna()
-    st.caption(f"{TEST} · each point on the curve is one threshold. The orange dot is your slider's threshold {thr:.2f}; the diagonal is a coin flip.")
-    base = alt.Chart(roc_df).mark_line(color=TEAL, strokeWidth=2.5).encode(
-        x=alt.X("False positive rate:Q", scale=alt.Scale(domain=[0, 1])), y=alt.Y("Sensitivity:Q", scale=alt.Scale(domain=[0, 1])))
-    diag = alt.Chart(pd.DataFrame({"False positive rate": [0, 1], "Sensitivity": [0, 1]})).mark_line(color=GREY, strokeDash=[4, 4]).encode(
-        x="False positive rate:Q", y="Sensitivity:Q")
-    dot = alt.Chart(here).mark_circle(size=170, color=ORANGE, opacity=1).encode(x="False positive rate:Q", y="Sensitivity:Q")
-    st.altair_chart(style_chart(base + diag + dot).properties(height=320), width="stretch")
+    st.markdown(f"### See it on the patients ({TEST})")
+    tab1, tab2, tab3 = st.tabs(["Patient dots", "Every threshold", "ROC curve"])
+    with tab1:
+        st.caption(f"{TEST} · {m11.MODEL_LABEL[model]} · each dot is one patient. The black line is the threshold {thr:.2f}: dots on or to its right are flagged.")
+        st.altair_chart(style_chart(alt.vconcat(strip(p, y, "Had the outcome", ORANGE, thr), strip(p, y, "Did not have the outcome", BLUE, thr))), width="stretch")
+    with tab2:
+        st.caption(f"{TEST} · {m11.MODEL_LABEL[model]} · thresholds 0.01 to 0.99. Gaps in the precision line are thresholds where no one is flagged (precision undefined).")
+        curve = pd.DataFrame([{"Threshold": g["t"], "Sensitivity (%)": None if g["m"]["sensitivity"] is None else 100 * g["m"]["sensitivity"],
+                               "Precision (%)": None if g["m"]["precision"] is None else 100 * g["m"]["precision"],
+                               "Flagged per 100": g["m"]["flagged_per_100"]} for g in G])
+        long = curve.melt("Threshold", var_name="Measure", value_name="Value").dropna()
+        line = alt.Chart(long).mark_line(strokeWidth=2.5).encode(
+            x=alt.X("Threshold:Q", scale=alt.Scale(domain=[0, 1])), y=alt.Y("Value:Q", title="Percent / per 100"),
+            color=alt.Color("Measure:N", scale=alt.Scale(domain=["Sensitivity (%)", "Precision (%)", "Flagged per 100"], range=[TEAL, BLUE, ORANGE])),
+            tooltip=["Threshold", "Measure", alt.Tooltip("Value:Q", format=".1f")])
+        mark = alt.Chart(pd.DataFrame({"Threshold": [thr]})).mark_rule(strokeDash=[4, 4], color=INK).encode(x="Threshold:Q")
+        st.altair_chart(style_chart(line + mark), width="stretch")
+        st.caption("The dashed line is your slider's threshold.")
+    with tab3:
+        roc_df = pd.DataFrame(list(zip(rc["fpr"], rc["tpr"])), columns=["False positive rate", "Sensitivity"])
+        here = pd.DataFrame({"False positive rate": [m1["fpr"]], "Sensitivity": [m1["sensitivity"]]}).dropna()
+        st.caption(f"{TEST} · each point on the curve is one threshold. The orange dot is your slider's threshold {thr:.2f}; the diagonal is a coin flip.")
+        base = alt.Chart(roc_df).mark_line(color=TEAL, strokeWidth=2.5).encode(
+            x=alt.X("False positive rate:Q", scale=alt.Scale(domain=[0, 1])), y=alt.Y("Sensitivity:Q", scale=alt.Scale(domain=[0, 1])))
+        diag = alt.Chart(pd.DataFrame({"False positive rate": [0, 1], "Sensitivity": [0, 1]})).mark_line(color=GREY, strokeDash=[4, 4]).encode(
+            x="False positive rate:Q", y="Sensitivity:Q")
+        dot = alt.Chart(here).mark_circle(size=170, color=ORANGE, opacity=1).encode(x="False positive rate:Q", y="Sensitivity:Q")
+        st.altair_chart(style_chart(base + diag + dot).properties(height=320), width="stretch")
+
 
     st.markdown("### What the slider does not change")
     st.markdown(f"{TEST} AUROC for {m11.MODEL_LABEL[model]}: **{m11.fmt_num(rc['auroc'])}**. It is the same at every threshold. "
@@ -494,7 +453,7 @@ def train_vs_test(res: dict, model: str, key: str) -> None:
     n_tr, n_te = res["train"]["n"], res["test"]["n"]
     st.markdown("A model is judged on patients it never saw. AUROC describes **ranking**: how often a patient with the outcome gets a higher "
                 "probability than one without (0.50 is no better than chance, 1.00 is perfect). It is not accuracy.")
-    how_to_read("1. Choose a **dataset** at the top.\n"
+    how_to_read("1. Choose a **dataset** in the sidebar.\n"
                 "2. In the table, compare each model's **Training** AUROC (patients it learned from) with its **Test** AUROC (patients it never saw).\n"
                 "3. A big **gap** means the model memorised its training patients. Trust the **Test** column.\n"
                 "4. The chart shows the same thing: a grey dot for Training, a teal dot for Test.\n"
@@ -552,20 +511,14 @@ RENDER = dict(zip(SECTIONS, [beyond_accuracy, threshold, train_vs_test]))
 
 # ---- page ----------------------------------------------------------------------------------
 header()
-control_label("Section")
-section = st.radio("Section", SECTIONS, horizontal=True, key="nav", label_visibility="collapsed")
-c1, c2 = st.columns([3, 5])
-with c1:
-    control_label("Dataset")
-    key = st.radio("Dataset", m11.DATASETS, format_func=m11.DATASET_LABEL.get, horizontal=True, key="dataset", label_visibility="collapsed")
+section = st.sidebar.radio("Section", SECTIONS, key="nav")
+key = st.sidebar.selectbox("Dataset", m11.DATASETS, format_func=m11.DATASET_LABEL.get, key="dataset")
 res = load(key)
-with c2:
-    control_label("Model")
-    model = st.radio("Model", m11.MODELS, horizontal=True, key="model", label_visibility="collapsed",
-                     format_func=lambda m: m11.MODEL_LABEL[m] + ("" if m in res["models"] else " (not trained yet)"))
+model = st.sidebar.selectbox("Model", m11.MODELS, key="model",
+                             format_func=lambda m: m11.MODEL_LABEL[m] + ("" if m in res["models"] else " (not trained yet)"))
 recommendations(key)
 glossary()
-st.markdown(f"## {section}")
+st.header(section)
 st.caption(f"{m11.DATASET_LABEL[key]}: {res['train']['n']:,} training rows ({res['train']['n_pos']:,} positive), "
            f"{res['test']['n']:,} test rows ({res['test']['n_pos']:,} positive).")
 if model in res["models"] or section == SECTIONS[2]:
