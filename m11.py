@@ -32,11 +32,11 @@ FITTED = ["logreg", "knn", "rf", "lgbm"]
 MODEL_LABEL = {
     "baseline": "Prevalence baseline",
     "logreg": "Logistic regression",
-    "knn": "k-nearest neighbours",
+    "knn": "K nearest neighbours",
     "rf": "Random forest",
     "lgbm": "Gradient boosting",
 }
-DATASET_LABEL = {"readmission": "30-day readmission", "diabetes": "Diabetes screening"}
+DATASET_LABEL = {"readmission": "30 day readmission", "diabetes": "Diabetes screening"}
 PARTITION_LABEL = {"train": "Training", "test": "Test"}
 
 # Thresholds can come from sliders (0.1 + 0.2 ≠ 0.3), so p within 1e-9 below t still counts as flagged.

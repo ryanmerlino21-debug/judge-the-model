@@ -304,7 +304,7 @@ def beyond_accuracy(res: dict, model: str, key: str) -> None:
         if name not in entries:
             table.append({"Model": m11.MODEL_LABEL[name] + " (not trained yet)"})
     st.caption(f"{TEST} · same {m['n']:,} {who} for every model · “undefined” means 0 ÷ 0")
-    st.table(pd.DataFrame(table).set_index("Model").fillna("–"))
+    st.table(pd.DataFrame(table).set_index("Model").fillna("n/a"))
     cols = st.columns(len(order))
     for col, name in zip(cols, order):
         with col:
