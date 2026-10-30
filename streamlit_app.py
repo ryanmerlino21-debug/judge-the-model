@@ -21,7 +21,49 @@ POSITIVE = {
 GROUP = {"readmission": "patients", "diabetes": "adults"}
 SENS_TARGET = {"diabetes": 0.90}  # the screening team's target; readmission has no fixed target
 
-st.set_page_config(page_title="Judge the Model", layout="wide")
+st.set_page_config(page_title="Judge the Model", page_icon="🩺", layout="wide")
+
+LIME, TEAL, AMBER, CORAL, GREY = "#B6F23A", "#4FD1C5", "#F6C453", "#FF6B5E", "#8A9A90"
+
+CSS = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
+html, body, [class*="css"], .stMarkdown, p, li, label { font-family: 'Inter', sans-serif; }
+h1, h2, h3, .hero-title { font-family: 'Fraunces', Georgia, serif !important; letter-spacing: -0.01em; }
+.stApp { background: radial-gradient(1200px 500px at 12% -10%, rgba(182,242,58,0.10), transparent 60%), #0A1712; }
+.block-container { padding-top: 2rem; max-width: 1200px; }
+[data-testid="stSidebar"] { background: #0E2018; border-right: 1px solid rgba(182,242,58,0.12); }
+.hero { background: linear-gradient(135deg, #12342A 0%, #0E2018 55%, #1B3A12 100%); border: 1px solid rgba(182,242,58,0.22);
+        border-radius: 24px; padding: 2.2rem 2.4rem; margin-bottom: 1.2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.35); }
+.hero-title { font-size: 3rem; font-weight: 700; line-height: 1.05; margin: 0; color: #F4FAF0; }
+.hero-title span { color: #B6F23A; }
+.hero-sub { color: #B9CDBF; font-size: 1.1rem; margin: 0.7rem 0 1.1rem; max-width: 46rem; }
+.chip { display: inline-block; padding: 0.25rem 0.8rem; margin: 0 0.4rem 0.3rem 0; border-radius: 999px; font-size: 0.82rem; font-weight: 500;
+        background: rgba(182,242,58,0.12); color: #D8F58F; border: 1px solid rgba(182,242,58,0.3); }
+[data-testid="stVerticalBlockBorderWrapper"] { border-radius: 18px; border-color: rgba(182,242,58,0.2) !important; background: rgba(18,38,29,0.7);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+[data-testid="stMetric"] { background: #12261D; border: 1px solid rgba(182,242,58,0.18); border-radius: 18px; padding: 1rem 1.2rem;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.25); transition: transform .15s ease, border-color .15s ease; }
+[data-testid="stMetric"]:hover { transform: translateY(-2px); border-color: rgba(182,242,58,0.55); }
+[data-testid="stMetricValue"] { font-family: 'Fraunces', serif; color: #B6F23A; }
+[data-testid="stExpander"] { border-radius: 16px; border: 1px solid rgba(182,242,58,0.18); background: rgba(18,38,29,0.55); }
+[data-testid="stTable"] table { border-collapse: separate; border-spacing: 0; border-radius: 14px; overflow: hidden; border: 1px solid rgba(182,242,58,0.18); width: 100%; }
+[data-testid="stTable"] th { background: #17352A; color: #D8F58F; font-weight: 600; }
+[data-testid="stTable"] td, [data-testid="stTable"] th { border-color: rgba(255,255,255,0.06) !important; padding: 0.55rem 0.8rem; }
+[data-testid="stTable"] tr:hover td { background: rgba(182,242,58,0.05); }
+[data-testid="stAlert"] { border-radius: 16px; }
+.stButton > button { border-radius: 999px; background: #B6F23A; color: #0A1712; font-weight: 600; border: none; padding: 0.5rem 1.2rem; transition: transform .15s ease, box-shadow .15s ease; }
+.stButton > button:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(182,242,58,0.35); color: #0A1712; }
+h2 { border-left: 4px solid #B6F23A; padding-left: 0.7rem; }
+</style>
+"""
+st.markdown(CSS, unsafe_allow_html=True)
+
+
+def style_chart(ch):
+    return (ch.configure(background="transparent").configure_view(strokeWidth=0)
+            .configure_axis(labelColor="#B9CDBF", titleColor="#B9CDBF", gridColor="#1F3A2E", domainColor="#2B4A3B")
+            .configure_legend(labelColor="#EAF2EC", titleColor="#B9CDBF", orient="top"))
 
 
 @st.cache_data
@@ -45,7 +87,7 @@ def matrix(c: dict, who: str, short: bool = False):
         index=["Actual +", "Actual −"] if short else ["Actual: positive", "Actual: negative"],
         columns=["Pred. +", "Pred. −"] if short else ["Predicted: positive (flagged)", "Predicted: negative (not flagged)"],
     )
-    good, bad = "background-color: rgba(46,160,67,0.35)", "background-color: rgba(220,53,69,0.35)"
+    good, bad = "background-color: rgba(182,242,58,0.28)", "background-color: rgba(255,107,94,0.30)"
     return df.style.map(lambda v: good if v[:2] in ("TP", "TN") else bad)
 
 
@@ -116,12 +158,12 @@ def beyond_accuracy(res: dict, model: str, key: str) -> None:
     st.subheader("Why accuracy alone can mislead")
     a, b, d = st.columns(3)
     a.metric(f"Prevalence ({TEST})", pct(m["prevalence"]), help=f"Share of {who} who are positive: {m['positives']:,} of {m['n']:,}.")
-    b.metric(f"“Most common class for everyone” accuracy ({TEST})", pct(maj),
-             help="Accuracy of giving every patient the most common answer, with no model at all.")
+    b.metric(f"Baseline accuracy ({TEST})", pct(maj),
+             help="Baseline accuracy: the accuracy of “the most common class for everyone”, giving every patient the most common answer with no model at all.")
     d.metric(f"{m11.MODEL_LABEL[model]} accuracy ({TEST})", pct(m["accuracy"]),
              help="(TP + TN) ÷ all patients: the share of patients the model got right.")
-    st.caption(f"Prevalence is {m['positives']:,} positive out of {m['n']:,} {who}. Giving everyone the most common answer is right for "
-               f"{pct(maj)} of them with no model at all, so a model's accuracy only means something next to that number. "
+    st.caption(f"Prevalence is {m['positives']:,} positive out of {m['n']:,} {who}. Baseline accuracy, the accuracy of “the most common class for everyone”, is "
+               f"{pct(maj)}: that rule is right for that share with no model at all, so a model's accuracy only means something next to that number. "
                f"{m11.MODEL_LABEL[model]} catches {c['tp']:,} of the {m['positives']:,} positive {who}; "
                "compare how many positives each approach finds, not just how many it gets right.")
 
@@ -218,16 +260,18 @@ def threshold(res: dict, model: str, key: str) -> None:
             st.caption(f"{TEST} · {m11.MODEL_LABEL[model]} · rows actual, columns predicted")
             st.table(matrix(c, who))
 
+    REF, NEW = "Threshold 0.50 (reference)", f"Threshold {thr:.2f} (slider)"
+
     def row(name, k, as_pct=True):
         f = pct if as_pct else per100
-        return {"Metric": name, "0.50": f(m0[k]), f"{thr:.2f}": f(m1[k]), "Change": delta(m1[k], m0[k], as_pct)}
+        return {"Metric": name, REF: f(m0[k]), NEW: f(m1[k]), "Change": delta(m1[k], m0[k], as_pct)}
 
     cmp = [row("Flagged per 100 patients", "flagged_per_100", False), row("Sensitivity (recall, TPR)", "sensitivity"),
            row("Specificity", "specificity"), row("FPR (1 − specificity)", "fpr"), row("Precision", "precision"),
            row("Accuracy", "accuracy"), row("F1", "f1")]
     cmp[0]["Change"] = delta(m1["flagged_per_100"], m0["flagged_per_100"], False)
-    cmp += [{"Metric": "Positives found (TP)", "0.50": f"{c0['tp']:,}", f"{thr:.2f}": f"{c1['tp']:,}", "Change": f"{c1['tp'] - c0['tp']:+,}"},
-            {"Metric": "False alarms (FP)", "0.50": f"{c0['fp']:,}", f"{thr:.2f}": f"{c1['fp']:,}", "Change": f"{c1['fp'] - c0['fp']:+,}"}]
+    cmp += [{"Metric": "Positives found (TP)", REF: f"{c0['tp']:,}", NEW: f"{c1['tp']:,}", "Change": f"{c1['tp'] - c0['tp']:+,}"},
+            {"Metric": "False alarms (FP)", REF: f"{c0['fp']:,}", NEW: f"{c1['fp']:,}", "Change": f"{c1['fp'] - c0['fp']:+,}"}]
     st.caption(f"{TEST} · Flagged per 100 = of every 100 {who}, how many the model flags (changes in percentage points, pts).")
     st.table(pd.DataFrame(cmp).set_index("Metric"))
 
@@ -254,9 +298,9 @@ def threshold(res: dict, model: str, key: str) -> None:
                       "Flagged per 100": mt["flagged_per_100"]})
     long = pd.DataFrame(curve).melt("Threshold", var_name="Measure", value_name="Value").dropna()
     line = alt.Chart(long).mark_line().encode(x=alt.X("Threshold:Q", scale=alt.Scale(domain=[0, 1])), y=alt.Y("Value:Q", title="Percent / per 100"),
-                                              color="Measure:N", tooltip=["Threshold", "Measure", alt.Tooltip("Value:Q", format=".1f")])
-    mark = alt.Chart(pd.DataFrame({"Threshold": [thr]})).mark_rule(strokeDash=[4, 4]).encode(x="Threshold:Q")
-    st.altair_chart(line + mark, width="stretch")
+                                              color=alt.Color("Measure:N", scale=alt.Scale(domain=["Sensitivity (%)", "Precision (%)", "Flagged per 100"], range=[LIME, TEAL, AMBER])), tooltip=["Threshold", "Measure", alt.Tooltip("Value:Q", format=".1f")])
+    mark = alt.Chart(pd.DataFrame({"Threshold": [thr]})).mark_rule(strokeDash=[4, 4], color="#FFFFFF").encode(x="Threshold:Q")
+    st.altair_chart(style_chart(line + mark), width="stretch")
     st.caption("The dashed line is your slider's threshold.")
 
     st.subheader("What the slider does not change")
@@ -276,7 +320,7 @@ def train_vs_test(res: dict, model: str, key: str) -> None:
     how_to_read("1. Choose a **dataset** in the sidebar.\n"
                 "2. In the table, compare each model's **Training** AUROC (patients it learned from) with its **Test** AUROC (patients it never saw).\n"
                 "3. A big **gap** means the model memorised its training patients. Trust the **Test** column.\n"
-                "4. The chart shows the same thing: a grey dot for Training, a coloured dot for Test.")
+                "4. The chart shows the same thing: a grey dot for Training, a green dot for Test.")
     a, b = st.columns(2)
     a.metric(f"{TRAIN} patients", f"{n_tr:,}", help=f"{res['train']['n_pos']:,} positive. Each model learned from these {who}.")
     b.metric(f"{TEST} patients", f"{n_te:,}", help=f"{res['test']['n_pos']:,} positive. Each model never saw these {who} while learning.")
@@ -292,17 +336,17 @@ def train_vs_test(res: dict, model: str, key: str) -> None:
     st.table(pd.DataFrame(rows).set_index("Model"))
 
     st.subheader("Training vs. test, model by model")
-    st.caption(f"{TRAIN} (grey) and {TEST} (blue) AUROC for each model. The longer the line between the dots, the bigger the gap.")
+    st.caption(f"{TRAIN} (grey) and {TEST} (green) AUROC for each model. The longer the line between the dots, the bigger the gap.")
     pts = pd.DataFrame([{"Model": m11.MODEL_LABEL[m], "Partition": part, "AUROC": s[m][k], "Training": s[m]["train"], "Test": s[m]["test"]}
                         for m in order if s[m]["gap"] is not None for part, k in ((TRAIN, "train"), (TEST, "test"))])
     if len(pts):
         names = [m11.MODEL_LABEL[m] for m in order]
-        base = alt.Chart(pts).encode(y=alt.Y("Model:N", sort=names, title=None))
-        rule = base.mark_rule(color="#888").encode(x=alt.X("Training:Q", scale=alt.Scale(domain=[0.4, 1.0]), title="AUROC"), x2="Test:Q")
+        base = alt.Chart(pts).encode(y=alt.Y("Model:N", sort=names, title=None, axis=alt.Axis(labelLimit=260)))
+        rule = base.mark_rule(color="#5F7A6B", strokeWidth=3).encode(x=alt.X("Training:Q", scale=alt.Scale(domain=[0.4, 1.0]), title="AUROC"), x2="Test:Q")
         dots = base.mark_circle(size=140, opacity=1).encode(
-            x="AUROC:Q", color=alt.Color("Partition:N", scale=alt.Scale(domain=[TRAIN, TEST], range=["#9a9a9a", "#1f77b4"])),
+            x="AUROC:Q", color=alt.Color("Partition:N", scale=alt.Scale(domain=[TRAIN, TEST], range=[GREY, LIME])),
             tooltip=["Model", "Partition", alt.Tooltip("AUROC:Q", format=".3f")])
-        st.altair_chart(rule + dots, width="stretch")
+        st.altair_chart(style_chart(rule + dots), width="stretch")
 
     if model in s and s[model]["gap"] is not None:
         v = s[model]
@@ -315,8 +359,11 @@ def train_vs_test(res: dict, model: str, key: str) -> None:
 
 RENDER = dict(zip(SECTIONS, [beyond_accuracy, threshold, train_vs_test]))
 
-st.title("Judge the Model")
-st.caption("Which classifier would you trust for this job, at what threshold, and with what limits?")
+st.markdown(
+    f"""<div class="hero"><p class="hero-title">Judge the <span>Model</span></p>
+    <p class="hero-sub">Which classifier would you trust for this job, at what threshold, and with what limits?</p>
+    <span class="chip">{len(m11.DATASETS)} clinical jobs</span><span class="chip">{len(m11.MODELS)} models, one baseline</span>
+    <span class="chip">Every table labelled Training or Test</span></div>""", unsafe_allow_html=True)
 recommendations()
 glossary()
 section = st.sidebar.radio("Section", SECTIONS)
