@@ -1,66 +1,124 @@
 <!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
-  body { margin: 0; font-family: Inter, -apple-system, 'Segoe UI', sans-serif; color: #111; background: transparent; font-size: 14px; }
-  .top { display: flex; align-items: baseline; gap: 14px; margin-bottom: 4px; }
-  .top label { font-size: 14px; }
-  #val { font-family: 'Instrument Serif', Georgia, serif; font-size: 40px; color: #1F7A8C; line-height: 1; }
-  input[type=range] { width: 100%; accent-color: #1F7A8C; height: 28px; cursor: pointer; }
-  .scale { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: -4px; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
-  .cap { font-size: 12px; color: #666; margin: 0 0 4px; }
-  table { border-collapse: separate; border-spacing: 0; width: 100%; border: 1px solid rgba(17,17,17,.2); border-radius: 12px; overflow: hidden; }
-  th { background: #EDE8DF; font-weight: 600; font-size: 12px; text-align: left; }
-  td, th { padding: 8px 10px; border-bottom: 1px solid rgba(17,17,17,.1); border-right: 1px solid rgba(17,17,17,.1); }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Inter, -apple-system, 'Segoe UI', sans-serif; color: #111; background: transparent; font-size: 13px; }
+  .top { display: flex; align-items: baseline; gap: 12px; }
+  #val { font-family: 'Instrument Serif', Georgia, serif; font-size: 38px; color: #1F7A8C; line-height: 1; min-width: 56px; }
+  input[type=range] { width: 100%; accent-color: #1F7A8C; height: 24px; cursor: pointer; margin: 2px 0 0; }
+  .scale { display: flex; justify-content: space-between; font-size: 11px; color: #666; margin-top: -2px; }
+  .cols { display: grid; grid-template-columns: 1.25fr 1fr; gap: 14px; margin-top: 8px; }
+  .cap { font-size: 11px; color: #666; margin: 0 0 3px; }
+  h4 { margin: 0 0 3px; font-size: 12px; font-weight: 600; }
+  table { border-collapse: separate; border-spacing: 0; width: 100%; border: 1px solid rgba(17,17,17,.2); border-radius: 10px; overflow: hidden; }
+  th { background: #EDE8DF; font-weight: 600; font-size: 11px; text-align: left; }
+  td, th { padding: 4px 7px; border-bottom: 1px solid rgba(17,17,17,.1); border-right: 1px solid rgba(17,17,17,.1); }
   tr:last-child td { border-bottom: none; } td:last-child, th:last-child { border-right: none; }
   td.good { background: rgba(31,122,140,.25); } td.bad { background: rgba(232,104,58,.30); }
-  td.name { background: #EDE8DF; font-weight: 600; font-size: 12px; color: #444; }
-  .sum { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: #E3EFE5; color: #1d5b2b; }
-  .tgt { margin-top: 8px; font-size: 12px; color: #555; }
+  td.name { background: #EDE8DF; font-weight: 600; font-size: 11px; color: #444; }
+  .mats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+  .sum { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #E3EFE5; color: #1d5b2b; font-size: 12px; }
+  .tgt { margin-top: 5px; font-size: 11px; color: #555; }
+  .waffle { display: grid; grid-template-columns: repeat(10, 17px); gap: 3px; margin: 2px 0 4px; }
+  .dot { width: 17px; height: 17px; border-radius: 50%; border: 1px solid rgba(17,17,17,.45); }
+  .dot.tp { background: #1F7A8C; } .dot.tn { background: #D9E6E8; } .dot.fn { background: #E8683A; } .dot.fp { background: #F6C9B8; }
+  .legend span { display: inline-block; margin-right: 8px; font-size: 10.5px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1px solid rgba(17,17,17,.45); margin-right: 3px; }
+  .legend .tp i { background: #1F7A8C; } .legend .tn i { background: #D9E6E8; } .legend .fn i { background: #E8683A; } .legend .fp i { background: #F6C9B8; }
+  svg text { font-family: Inter, sans-serif; font-size: 9.5px; fill: #444; }
+  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
 </style></head>
 <body>
-<div class="top"><label for="s" id="lab"></label><span id="val"></span></div>
+<div class="top"><span id="lab" style="font-size:12px"></span><span id="val"></span></div>
 <input type="range" id="s" min="1" max="99" step="1" value="50">
 <div class="scale"><span>0.01</span><span>0.99</span></div>
-<div class="grid">
-  <div><p class="cap" id="capL"></p><div id="mL"></div></div>
-  <div><p class="cap" id="capR"></p><div id="mR"></div></div>
+<div class="cols">
+  <div>
+    <div class="mats">
+      <div><h4 id="capL"></h4><div id="mL"></div></div>
+      <div><h4 id="capR"></h4><div id="mR"></div></div>
+    </div>
+    <p class="cap" id="capT"></p>
+    <div id="cmp"></div>
+    <div class="sum" id="sum"></div>
+    <div class="tgt" id="tgt"></div>
+  </div>
+  <div>
+    <h4 id="capD"></h4>
+    <div class="waffle" id="waffle"></div>
+    <div class="legend"><span class="tp"><i></i>TP caught</span><span class="fn"><i></i>FN missed</span><span class="fp"><i></i>FP false alarm</span><span class="tn"><i></i>TN left alone</span></div>
+    <div class="charts">
+      <div><h4 id="capC"></h4><svg id="line" viewBox="0 0 200 150" width="100%"></svg></div>
+      <div><h4 id="capO"></h4><svg id="roc" viewBox="0 0 200 150" width="100%"></svg></div>
+    </div>
+  </div>
 </div>
-<p class="cap" id="capT" style="margin-top:14px"></p>
-<div id="cmp"></div>
-<div class="sum" id="sum"></div>
-<div class="tgt" id="tgt"></div>
 <script>
 const slider = document.getElementById("s");
 let A = null, nonce = null, timer = null;
 function post(type, extra) { window.parent.postMessage(Object.assign({ isStreamlitMessage: true, type: type }, extra || {}), "*"); }
-function matrix(c, a) {
+function matrix(c, a, short) {
   const cell = (k, t, cls) => '<td class="' + cls + '">' + t + ' = ' + c[k] + '</td>';
   return '<table><tr><th></th><th>' + a.col1 + '</th><th>' + a.col2 + '</th></tr>' +
     '<tr><td class="name">' + a.row1 + '</td>' + cell("tp", "TP", "good") + cell("fn", "FN", "bad") + '</tr>' +
     '<tr><td class="name">' + a.row2 + '</td>' + cell("fp", "FP", "bad") + cell("tn", "TN", "good") + '</tr></table>';
 }
+const X = (v, w, l, r) => l + v * (w - l - r), Y = (v, h, t, b) => h - b - v * (h - t - b);
+function path(pts, w, h, mx, my) {
+  let d = "", pen = false;
+  pts.forEach(p => { if (p === null) { pen = false; return; } d += (pen ? "L" : "M") + X(p[0] / mx, w, 24, 6).toFixed(1) + "," + Y(p[1] / my, h, 14, 18).toFixed(1); pen = true; });
+  return d;
+}
+function lineChart(idx) {
+  const W = 200, H = 150, S = A.series, ax = [];
+  for (let i = 0; i <= 4; i++) ax.push('<line x1="24" x2="194" y1="' + Y(i / 4, H, 14, 18) + '" y2="' + Y(i / 4, H, 14, 18) + '" stroke="#DDD6C9"/><text x="2" y="' + (Y(i / 4, H, 14, 18) + 3) + '">' + i * 25 + '</text>');
+  const lines = [["sensp", "#1F7A8C"], ["prec", "#2E4A9E"], ["flag", "#E8683A"]].map(([k, col]) =>
+    '<path d="' + path(S.map((r, i) => r[k] === null ? null : [(i + 1) / 100, r[k]]), W, H, 1, 100) + '" fill="none" stroke="' + col + '" stroke-width="1.8"/>').join("");
+  const cx = X((idx + 1) / 100, W, 24, 6);
+  document.getElementById("line").innerHTML = ax.join("") + lines +
+    '<line x1="' + cx + '" x2="' + cx + '" y1="14" y2="132" stroke="#111" stroke-dasharray="3 2"/>' +
+    '<text x="24" y="146">0</text><text x="194" y="146" text-anchor="end">threshold →</text>' +
+    '<text x="26" y="9" fill="#1F7A8C" style="fill:#1F7A8C">sensitivity</text><text x="78" y="9" style="fill:#2E4A9E">precision</text><text x="124" y="9" style="fill:#E8683A">flagged/100</text>';
+}
+function rocChart(idx) {
+  const W = 200, H = 150, S = A.series;
+  const pts = [[0, 0]].concat(S.map(r => [r.fpr, r.sens]).filter(p => p[0] !== null && p[1] !== null).reverse(), [[1, 1]]);
+  const cur = S[idx], cx = cur.fpr === null || cur.sens === null ? null : [X(cur.fpr, W, 24, 6), Y(cur.sens, H, 14, 18)];
+  document.getElementById("roc").innerHTML =
+    '<line x1="24" y1="' + Y(0, H, 14, 18) + '" x2="194" y2="' + Y(1, H, 14, 18) + '" stroke="#9A948A" stroke-dasharray="3 2"/>' +
+    '<path d="' + path(pts, W, H, 1, 1) + '" fill="none" stroke="#1F7A8C" stroke-width="1.8"/>' +
+    (cx ? '<circle cx="' + cx[0] + '" cy="' + cx[1] + '" r="4.5" fill="#E8683A" stroke="#111"/>' : '') +
+    '<text x="2" y="' + (Y(1, H, 14, 18) + 3) + '">1</text><text x="2" y="' + (Y(0, H, 14, 18) + 3) + '">0</text>' +
+    '<text x="24" y="146">0</text><text x="194" y="146" text-anchor="end">false positive rate →</text><text x="26" y="9">sensitivity</text>';
+}
 function draw() {
   if (!A) return;
-  const v = slider.value, row = A.rows[v];
-  document.getElementById("lab").textContent = A.labels.slider;
+  const idx = parseInt(slider.value, 10) - 1, row = A.rows[String(idx + 1)], L = A.labels;
+  document.getElementById("lab").textContent = L.slider;
   document.getElementById("val").textContent = row.t;
-  document.getElementById("capL").textContent = A.labels.capRef;
-  document.getElementById("capR").textContent = A.labels.capNew.replace("{t}", row.t);
-  document.getElementById("mL").innerHTML = matrix(A.ref, A.labels);
-  document.getElementById("mR").innerHTML = matrix(row.c, A.labels);
-  document.getElementById("capT").textContent = A.labels.capTable;
-  let h = '<table><tr><th>Metric</th><th>Threshold 0.50</th><th>Threshold ' + row.t + ' (slider)</th><th>Change</th></tr>';
+  document.getElementById("capL").textContent = L.capRef;
+  document.getElementById("capR").textContent = L.capNew.replace("{t}", row.t);
+  document.getElementById("mL").innerHTML = matrix(A.ref, L);
+  document.getElementById("mR").innerHTML = matrix(row.c, L);
+  document.getElementById("capT").textContent = L.capTable;
+  let h = '<table><tr><th>Metric</th><th>Threshold 0.50</th><th>Threshold ' + row.t + '</th><th>Change</th></tr>';
   row.cmp.forEach(r => { h += '<tr><td class="name">' + r[0] + '</td><td>' + r[1] + '</td><td>' + r[2] + '</td><td>' + r[3] + '</td></tr>'; });
   document.getElementById("cmp").innerHTML = h + '</table>';
   document.getElementById("sum").innerHTML = row.summary;
   document.getElementById("tgt").textContent = row.target;
+  document.getElementById("capD").textContent = L.capDots.replace("{t}", row.t);
+  let dots = "";
+  ["tp", "fn", "fp", "tn"].forEach(k => { for (let i = 0; i < row.dots[k]; i++) dots += '<div class="dot ' + k + '"></div>'; });
+  document.getElementById("waffle").innerHTML = dots;
+  document.getElementById("capC").textContent = L.capChart;
+  document.getElementById("capO").textContent = L.capRoc;
+  lineChart(idx); rocChart(idx);
   post("streamlit:setFrameHeight", { height: document.body.scrollHeight + 8 });
 }
 slider.addEventListener("input", () => {
   draw();
   clearTimeout(timer);
-  timer = setTimeout(() => post("streamlit:setComponentValue", { value: { thr: A.rows[slider.value].tv, nonce: nonce }, dataType: "json" }), 200);
+  timer = setTimeout(() => post("streamlit:setComponentValue", { value: { thr: A.rows[slider.value].tv, nonce: nonce }, dataType: "json" }), 250);
 });
 window.addEventListener("message", e => {
   if (!e.data || e.data.type !== "streamlit:render") return;

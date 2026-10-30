@@ -324,12 +324,20 @@ def live_payload(G: list[dict], key: str, who: str, model: str) -> dict:
             met = sv is not None and sv >= SENS_TARGET[key]
             target = (f"Sensitivity target {SENS_TARGET[key]:.2f}: {'met' if met else 'not met'} at {g['t']:.2f} (sensitivity {pct(sv)}, {TEST}). "
                       "The threshold was chosen on these test patients, so expect slightly lower on new ones.")
-        rows[str(round(g["t"] * 100))] = {"t": f"{g['t']:.2f}", "tv": g["t"], "c": c1, "cmp": cmp, "summary": summary, "target": target}
-    return {"rows": rows, "ref": c0, "labels": {
+        rows[str(round(g["t"] * 100))] = {"t": f"{g['t']:.2f}", "tv": g["t"], "c": c1, "cmp": cmp, "summary": summary, "target": target,
+                                         "dots": to_100(c1)}
+    series = [{"sensp": None if g["m"]["sensitivity"] is None else 100 * g["m"]["sensitivity"],  # percent, for the line chart
+               "prec": None if g["m"]["precision"] is None else 100 * g["m"]["precision"],
+               "flag": g["m"]["flagged_per_100"],
+               "sens": g["m"]["sensitivity"], "fpr": g["m"]["fpr"]}  # 0-1, for the ROC curve
+              for g in G]
+    return {"rows": rows, "ref": c0, "series": series, "labels": {
         "slider": "Threshold: flag a patient when their probability is at least this",
         "capRef": f"{TEST} · {m11.MODEL_LABEL[model]} · threshold 0.50",
         "capNew": f"{TEST} · {m11.MODEL_LABEL[model]} · threshold {{t}} (slider)",
         "capTable": f"{TEST} · Flagged per 100 = of every 100 {who}, how many the model flags",
+        "capDots": f"{TEST} · 100 {who} at threshold {{t}}",
+        "capChart": f"{TEST} · every threshold", "capRoc": f"{TEST} · ROC curve",
         "row1": "Actual: positive", "row2": "Actual: negative",
         "col1": "Predicted: positive (flagged)", "col2": "Predicted: negative (not flagged)"}}
 
@@ -348,11 +356,10 @@ def threshold(res: dict, model: str, key: str) -> None:
     who = GROUP[key]
     G = grid(key, model)
     if key == "diabetes":
-        st.info(f"**The job:** finding positives matters most. The screening team wants a sensitivity of at least {SENS_TARGET[key]:.2f}.")
+        st.info(f"**The job:** finding positives matters most; the screening team wants a sensitivity of at least {SENS_TARGET[key]:.2f}. "
+                f"Everything here is {TEST} data ({len(y):,} {who}).")
     else:
-        st.info("**The job:** there is no fixed target. See what each threshold gains and gives up, then choose.")
-    st.caption(f"Everything here is {TEST} data ({len(y):,} {who}). The threshold is a decision separate from the model: "
-               "moving it changes who is flagged, never the probabilities.")
+        st.info(f"**The job:** no fixed target; see what each threshold gains and gives up. Everything here is {TEST} data ({len(y):,} {who}).")
 
     skey = f"thr_{key}_{model}"
     st.session_state.setdefault(skey, 0.50)
@@ -369,17 +376,16 @@ def threshold(res: dict, model: str, key: str) -> None:
         else:
             st.caption(f"No threshold from 0.01 to 0.99 reaches a sensitivity of {SENS_TARGET[key]:.2f} for this model.")
 
-    st.markdown(f"### 0.50 vs. your threshold ({TEST})")
     nonce = st.session_state[skey + "_n"]
     val = live_threshold(**live_payload(G, key, who, model), initial=st.session_state[skey], nonce=nonce,
                          key=f"live_{key}_{model}", default={"thr": st.session_state[skey], "nonce": nonce})
     if val and val.get("nonce") == nonce:
         st.session_state[skey] = val["thr"]
     thr = st.session_state[skey]
-    st.caption("The numbers above move as you drag. The charts below update when you let go.")
 
     rc = m11.roc(p, y)
-    st.markdown(f"### See it ({TEST})")
+    st.markdown("### Bigger charts")
+    st.caption("These larger versions update when you let go of the slider.")
     tab1, tab2, tab3 = st.tabs(["Patient dots", "Every threshold", "ROC curve"])
     with tab1:
         st.caption(f"{TEST} · each dot is one patient; dots on or right of the black line (threshold {thr:.2f}) are flagged.")
