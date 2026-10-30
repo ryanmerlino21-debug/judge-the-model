@@ -17,4 +17,4 @@ For each dataset: positive class; which error matters more for the job (missed p
 ## Design choice and AI use
 A few sentences each. The design choice must be your own idea, not an AI tool's.
 - design choice: I put the per 100 numbers next to the threshold slider, showing how many patients get flagged and how many are false alarms. For diabetes I also added a button that jumps to the highest threshold that still reaches 0.90 sensitivity. The clinical lead has to staff the follow up tests, so they need to see the costs to hit the target in real adults, not just percentages.
-- AI suggestion I turned down: I used Claude Code to write the models module and the app, and I did not turn down any of its suggestions.
+- AI suggestion I turned down: I used Claude Code to write the models module and the app. I turned down some of its design suggestions because they made the page too cluttered, and I asked for a simpler layout that is easier for a clinical lead to read.

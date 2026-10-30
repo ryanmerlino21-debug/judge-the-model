@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-10-30T04:20:48Z",
+  "exported_at": "2026-10-30T04:30:37Z",
   "words": 101,
   "word_limit": 150,
   "sections": {
@@ -13,7 +13,7 @@
     },
     "design": {
       "design_choice": "I put the per 100 numbers next to the threshold slider, showing how many patients get flagged and how many are false alarms. For diabetes I also added a button that jumps to the highest threshold that still reaches 0.90 sensitivity. The clinical lead has to staff the follow up tests, so they need to see the costs to hit the target in real adults, not just percentages.",
-      "ai_turned_down": "I used Claude Code to write the models module and the app, and I did not turn down any of its suggestions."
+      "ai_turned_down": "I used Claude Code to write the models module and the app. I turned down some of its design suggestions because they made the page too cluttered, and I asked for a simpler layout that is easier for a clinical lead to read."
     }
   },
   "complete": {
